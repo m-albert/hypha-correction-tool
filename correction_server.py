@@ -128,8 +128,7 @@ async def start_server(server_url, path2images, path2labels, save_path):
         
     })
 
-    plugin_url = "https://gist.githubusercontent.com/m-albert/f2abd79d258d1e1f311b220dee4e25ac/raw/45d0ce968f057ed69cbbea7dfd919ab7368a4ac4/bioimageio-colab-correction.imjoy.html"
-    # print("https://imjoy.io/lite?plugin=" + plugin_url)
+    plugin_url = "https://raw.githubusercontent.com/m-albert/hypha-correction-tool/main/correction_tool.imjoy.html"
 
     annotation_sid = svc["id"]
     config_str = f'{{"server_url": "{server_url}", "annotation_service_id": "{annotation_sid}", "token": "{token}"}}'
