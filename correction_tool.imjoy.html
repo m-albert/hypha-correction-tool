@@ -1,0 +1,356 @@
+<docs lang="markdown">
+[TODO: write documentation for this plugin.]
+</docs>
+
+<config lang="json">
+{
+    "name": "Untitled Plugin",
+    "type": "window",
+    "tags": [],
+    "ui": "",
+    "version": "0.1.0",
+    "cover": "",
+    "description": "[TODO: describe this plugin with one sentence.]",
+    "icon": "extension",
+    "inputs": null,
+    "outputs": null,
+    "api_version": "0.1.8",
+    "env": "",
+    "permissions": [],
+    "requirements": ["https://cdn.jsdelivr.net/npm/imjoy-rpc@0.5.6/dist/hypha-rpc-websocket.min.js"],
+    "dependencies": [],
+    "defaults": {"w": 20, "h": 10}
+}
+</config>
+
+<script lang="javascript">
+class BioImageIOColabAnnotator {
+    async setup() {
+    api.log('initialized')
+    }
+
+        /*
+Shape Layer Interface:
+
+name: String, the name of the layer
+id: String, the id of the layer
+update_config: Function, update the config layer config, it takes one argument:
+config: the new config, it can contain one or more options described in Arguments. For example, it can be used to update the markup tool setting.
+clear_features: Function, a function that can be called for clear all the features in the layer, it takes no arguments
+update_feature: Function, a function for updating the feature, it takes two arguments:
+id: String, the id of an existing feature to be updated
+new_feature: Object, the new feature object with geometry and properties
+set_features: Function, replace the features in the layer with an array of new features, it takes one argument:
+features: Array, an array of new features
+select_feature: Function, select a feature, it takes one argument:
+id: String, the id of an existing feature to be selected
+select_features: Function, select an array of features, it takes one argument:
+ids: Array, an array of features ids
+add_feature: Function, add a new feature, it takes one argument:
+new_feature: Object, the new feature object
+add_features: Function, add an array of new features, it takes one argument:
+new_features: Array, an array of features
+remove_feature: Function, remove a feature, it takes one argument:
+id: String, the id of an existing feature to be removed
+remove_features: Function, remove an array of features, it takes one argument:
+ids: Array, an array of features ids
+get_features: Function, get all the features of the layer, it takes no argument
+        */
+
+    constructor() {
+        this.image = null; // Current image
+        this.mask = null; // Current mask
+        this.filename = null; // Filename of the current image
+        this.imageLayer = null; // Layer displaying the image
+        this.annotationLayer_pos = null; // Layer displaying the annotations
+        this.annotationLayer_neg = null; // Layer displaying the annotations
+        this.pos_features = null; // Features for the positive class
+        this.neg_features = null; // Features for the negative class
+        this.image_basename = null; // Base name of the current image
+        this.edgeColor_pos = "green"; // Default edge color for annotations
+        this.edgeColor_neg = "red"; // Default edge color for annotations
+        this.edge_width = 10; // Default edge width for annotations
+        this.selected_feature = null; // Selected feature
+        this.selected_feature_class = null; // Class of the selected feature
+        this.selected_feature_id = null; // ID of the selected feature
+    }
+
+    async run(ctx) {
+        // Extract configuration settings
+        const config = ctx.config || {};
+        const serverUrl = config.server_url || "https://ai.imjoy.io";
+        const annotationServiceId = config.annotation_service_id || "correction-tool";  // default for testing plugin
+        await api.showMessage(`Connecting to server ${annotationServiceId}....`);
+
+        // Create and display the viewer window
+        const viewer = await api.showDialog({src: "https://kaibu.org/#/app", fullscreen: true});
+        await viewer.set_mode("lite");
+        //await api.showMessage(`Connecting to server ${serverUrl}....`);
+        // Login before connecting and then use userid instead of new client_id
+        // TODO: Add login functionality
+
+        // // Connect to the Hypha server
+        // const server = await hyphaWebsocketClient.connectToServer({
+        //     server_url: serverUrl,
+        //     token:"_token_",
+        //     workspace:"_workspace_",
+        // });
+
+        // Connect to the Hypha server
+        const server = await hyphaWebsocketClient.connectToServer({
+            server_url: serverUrl,
+            token: config.token,
+            workspace: config.workspace,
+        });
+
+        // Get the bioimageio-colab service from the server
+        let biocolab;
+        try {
+            biocolab = await server.getService(annotationServiceId);
+        } catch (e) {
+            await api.alert(`Failed to get the bioimageio-colab annotation service (id=${annotationServiceId}). (Error: ${e})`);
+            return;
+        }
+
+        // Function to get a new image and set up the viewer
+        const getData = async () => {
+            if (this.image !== null) {
+                // Remove existing layers if there is any image loaded
+                await viewer.remove_layer({id: this.imageLayer.id});
+                await viewer.remove_layer({id: this.annotationLayer_pos.id});
+                // await viewer.remove_layer({id: this.annotationLayer_neg.id});
+            }
+
+            // [this.image, this.filename, this.newname] = await biocolab.get_random_image();
+            [this.image, this.pos_features, this.neg_features, this.image_basename] = await biocolab.get_data_by_index();
+            this.imageLayer = await viewer.view_image(this.image, {name: "Micrograph"});
+
+            // Add the segmented features as polygons to the annotation layer
+            this.annotationLayer_pos = await viewer.add_shapes(this.pos_features, {
+                shape_type: "path",
+                edge_color: this.edgeColor_pos,
+                draw_edge_color: this.edgeColor_pos,
+                edge_width: this.edge_width,
+                draw_edge_width: this.edge_width,
+                name: "Keep",
+                _rintf: true,
+                select_enabled: true,
+                // draw_freehand: true,
+                select_feature_callback: (feature) => {
+                    this.selected_feature = feature;
+                },
+            });
+
+            this.annotationLayer_neg = await viewer.add_shapes(this.neg_features, {
+                shape_type: "path",
+                edge_color: this.edgeColor_neg,
+                draw_edge_color: this.edgeColor_neg,
+                edge_width: this.edge_width,
+                draw_edge_width: this.edge_width,
+                name: "Discard",
+                _rintf: true,
+                select_enabled: true,
+                // draw_freehand: true,
+                select_feature_callback: (feature) => {
+                    this.selected_feature = feature;
+                },
+            });
+        };
+
+        // Function to save the annotation
+        const saveCorrection = async () => {
+            // if (!this.annotationLayer_pos) return;
+            const annotation_pos = await this.annotationLayer_pos.get_features();
+            const annotation_neg = await this.annotationLayer_neg.get_features();
+            // save annotation even if it is empty
+            await biocolab.save_correction(annotation_pos, annotation_neg, this.image_basename, [this.image._rshape[0], this.image._rshape[1]]);
+            // await biocolab.save_correction(annotation_pos, annotation_neg, this.image_basename);
+            // if (annotation.features.length > 0) {
+            //     await biocolab.save_annotation(this.filename, this.newname, annotation, [this.image._rshape[0], this.image._rshape[1]]);
+            //     await api.showMessage(`Annotation Saved to ${this.filename}`);
+            // } else {
+            //     await api.showMessage("Skip saving annotation");
+            // }
+        };
+
+
+        // Add a control widget with a button to load the next image
+        await viewer.add_widget({
+            _rintf: true,
+            name: "Saving",
+            type: "control",
+            elements: [
+                {
+                    type: "button",
+                    label: "Save Correction",
+                    // callback: saveCorrection,
+                    callback: async () => {
+                        const annotation_pos = await this.annotationLayer_pos.get_features();
+                        const annotation_neg = await this.annotationLayer_neg.get_features();
+                        await biocolab.save_correction(annotation_pos, annotation_neg, this.image_basename, [this.image._rshape[0], this.image._rshape[1]]);
+                        // show message after saving including the image name
+                        await api.showMessage("Saved correction for " + this.image_basename + "!");
+                        // await biocolab.save_correction(annotation_pos, annotation_neg, this.image_basename);
+                    },
+                },
+        
+            ],
+        });
+
+
+        // Add a control widget with a button to load the next image
+        await viewer.add_widget({
+            _rintf: true,
+            name: "Correcting",
+            type: "control",
+            elements: [
+                // button to add selected feature to the other class
+                // {
+                //     type: "button",
+                //     label: "Move to Discard",
+                //     callback: async () => {
+                //         const features_pos = await this.annotationLayer_pos.get_features();
+                //         const features_neg = await this.annotationLayer_neg.get_features();
+                //         [this.selected_feature_class, this.selected_feature_id] = await biocolab.get_feature_class_and_id_from_features_lists(this.selected_feature, [features_pos, features_neg]);
+                //         api.alert("move to discard, selected feature class: " + this.selected_feature_class);
+                //         if (this.selected_feature_class === 1) {
+                //             api.alert("Feature already in the Discard class");
+                //         } else if (this.selected_feature_class === 0) {
+                //             await this.annotationLayer_pos.remove_feature(this.selected_feature_id);
+                //             await this.annotationLayer_neg.add_feature(this.selected_feature);
+                //         }
+                //     },
+                // },
+                // {
+                //     type: "button",
+                //     label: "Move to Keep",
+                //     callback: async () => {
+                //         const features_pos = await this.annotationLayer_pos.get_features();
+                //         const features_neg = await this.annotationLayer_neg.get_features();
+                //         [this.selected_feature_class, this.selected_feature_id] = await biocolab.get_feature_class_and_id_from_features_lists(this.selected_feature, [features_pos, features_neg]);
+                //         api.alert("move to keep, selected feature class: " + this.selected_feature_class);
+                //         if (this.selected_feature_class === 0) {
+                //             api.alert("Feature already in the Keep class");
+                //         } else if (this.selected_feature_class === 1) {
+                //             await this.annotationLayer_neg.remove_feature(this.selected_feature_id);
+                //             await this.annotationLayer_pos.add_feature(this.selected_feature);
+                //         }
+                //     },
+                // },
+                {
+                    // type: "button",
+                    // label: "Swap category",
+                    // callback: async () => {
+                    //     const features_pos = await this.annotationLayer_pos.get_features();
+                    //     const features_neg = await this.annotationLayer_neg.get_features();
+                    //     [this.selected_feature_class, this.selected_feature_id] = await biocolab.get_feature_class_and_id_from_features_lists(this.selected_feature, [features_pos, features_neg]);
+                    //     if (this.selected_feature_class === -1) {
+                    //         api.alert("No feature selected");
+                    //         return;
+                    //     }
+                    //     api.alert("swap, selected feature class: " + this.selected_feature_class);
+                    //     api.alert("color is " + this.selected_feature.properties.edge_color)
+                    //     if (this.selected_feature_class === 0) {
+                    //         api.alert("moving from Keep to Discard");
+                    //         await this.annotationLayer_pos.remove_feature(this.selected_feature_id);
+                    //         // change color of the selected feature
+                    //         this.selected_feature.properties.edge_color = this.edgeColor_neg;
+                    //         await this.annotationLayer_neg.add_feature(this.selected_feature);
+                    //     } else if (this.selected_feature_class === 1) {
+                    //         api.alert("moving from Discard to Keep");
+                    //         await this.annotationLayer_neg.remove_feature(this.selected_feature_id);
+                    //         // change color of the selected feature
+                    //         this.selected_feature.properties.edge_color = this.edgeColor_pos;
+                    //         await this.annotationLayer_pos.add_feature(this.selected_feature);
+                    //     }
+                    // },
+                    type: "button",
+                    label: "Swap category",
+                    callback: async () => {
+
+                        if (!this.selected_feature) {
+                            await api.alert("No feature selected");
+                            return;
+                        }
+
+                        const features_pos = await this.annotationLayer_pos.get_features();
+
+                        // check if feature id is in the positive class
+                        const pos_is_source = features_pos.features.find(f => f.id === this.selected_feature.id);
+
+                        if (pos_is_source) {
+                            await this.annotationLayer_pos.remove_feature(this.selected_feature.id);
+                            this.selected_feature.properties.edge_color = this.edgeColor_neg;
+                            await this.annotationLayer_neg.add_feature(this.selected_feature);
+                        } else {
+                            await this.annotationLayer_neg.remove_feature(this.selected_feature.id);
+                            this.selected_feature.properties.edge_color = this.edgeColor_pos;
+                            await this.annotationLayer_pos.add_feature(this.selected_feature);
+                        }
+
+                        this.selected_feature = null;
+
+                    },
+                },
+            ],
+        });
+
+        const node_dbclick_callback = async (node) => {
+            await api.alert("selected node:" + JSON.stringify(node))
+        }
+
+        // Add a control widget with a button to load the next image
+        await viewer.add_widget({
+            _rintf: true,
+            name: "Next",
+            type: "control",
+            elements: [
+                {
+                    type: "button",
+                    label: "Next Image",
+                    callback: async () => {
+                        await viewer.clear_layers();
+                        await getData();
+                    },
+                },
+        
+            ],
+        });
+
+
+        const tree = await viewer.add_widget(
+            {
+                "_rintf": true,
+                "type": "tree",
+                "name": "Sample selection",
+                "node_dbclick_callback": node_dbclick_callback,
+                "nodes": [
+                    {"title": 'Item1', "isLeaf": true, "data": {"my-custom-data": 123}},
+                    {"title": 'Item2', "isLeaf": true},
+                    {"title": 'Folder1'},
+                    {"title": 'Folder2', "isExpanded": true,
+                        "children": [
+                            {"title": 'Item3', "isLeaf": true},
+                            {"title": 'Item4', "isLeaf": true}
+                        ]
+                    }
+                ],
+            }
+        )
+
+
+        // Load the initial image
+        await getData(); // somehow doesn't work
+        await api.showMessage("Ready to annotate!");
+    }
+}
+
+api.export(new BioImageIOColabAnnotator())
+</script>
+
+<window lang="html">
+</window>
+
+<style lang="css">
+
+</style>

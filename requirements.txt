@@ -1,0 +1,6 @@
+imjoy_rpc
+numpy<2
+tifffile
+mrcfile
+skan
+fire
