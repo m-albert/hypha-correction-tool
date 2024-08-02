@@ -7,7 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 logger.setLevel("INFO")
 
-def serve_tool(path2images = "/Volumes/ImageAnalysisHub/malbert/nhawkins/HAWKINS_highmag_sorted/training0", server_url = "https://ai.imjoy.io"):
+def serve_tool(path2images = "/pasteur/zeus/projets/p02/ImageAnalysisHub/malbert/nhawkins/HAWKINS_highmag_sorted/training0", server_url = "https://ai.imjoy.io"):
 
     logger.setLevel("DEBUG")
 
