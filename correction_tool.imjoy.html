@@ -84,7 +84,9 @@ get_features: Function, get all the features of the layer, it takes no argument
         await api.showMessage(`Connecting to server ${annotationServiceId}....`);
 
         // Create and display the viewer window
-        const viewer = await api.showDialog({src: "https://kaibu.org/#/app", fullscreen: true});
+        // const viewer = await api.showDialog({src: "https://kaibu.org/#/app", fullscreen: true});
+        // const viewer = await api.showDialog({src: "https://66aceaef388a075ebd4ab083--kaibu-test.netlify.app/#/app", fullscreen: true});
+        const viewer = await api.showDialog({src: "https://66ad127371592e0008ed0747--kaibu-test.netlify.app/#/app", fullscreen: true}); // use kaibu deployed from github.com/m-albert/kaibu which includes editing vertices in selection mode
         await viewer.set_mode("lite");
         //await api.showMessage(`Connecting to server ${serverUrl}....`);
         // Login before connecting and then use userid instead of new client_id
@@ -146,7 +148,9 @@ get_features: Function, get all the features of the layer, it takes no argument
             // [this.image, this.filename, this.newname] = await biocolab.get_random_image();
             [this.image, this.pos_features, this.neg_features, this.image_basename, this.loaded_saved, this.category] = await biocolab.get_data_by_basename(basename);
 
-            this.imageLayer = await viewer.view_image(this.image, {name: "Micrograph"});
+            this.imageLayer = await viewer.view_image(
+                this.image, {name: "Micrograph", type: "itk-vtk"},
+            );
 
             // Add the segmented features as polygons to the annotation layer
             this.annotationLayer_pos = await viewer.add_shapes(this.pos_features, {
@@ -332,7 +336,7 @@ get_features: Function, get all the features of the layer, it takes no argument
         });
 
         // Load the initial image
-        // await getData();
+        await getData();
         await api.showMessage("Ready to annotate!");
     }
 }
