@@ -90,6 +90,10 @@ async def start_server(server_url, path2images):
         image = (image - image.min()) / (image.max() - image.min()) * 255
         return image.astype(np.uint8)
 
+    def get_next_image_basename(image_basename):
+        index = image_basenames.index(image_basename)
+        return image_basenames[(index + 1) % len(image_basenames)]
+
     def get_data_by_basename(image_basename=None):
 
         if image_basename is None:
@@ -233,6 +237,7 @@ async def start_server(server_url, path2images):
         "save_correction": save_correction,
         "get_feature_class_and_id_from_features_lists": get_feature_class_and_id_from_features_lists,
         "get_widget_node_list_of_basenames": get_widget_node_list_of_basenames,
+        "get_next_image_basename": get_next_image_basename,
 
     })
 
