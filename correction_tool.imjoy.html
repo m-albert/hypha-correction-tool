@@ -136,6 +136,20 @@ get_features: Function, get all the features of the layer, it takes no argument
             },
             ]);
 
+        // Key callbacks
+        const keyDownCallback = async (event) => {
+            if (event.code === "KeyS" && (event.shift_key || event.alt_key)) {
+                swap_category();
+                }
+            else if (event.code === "KeyD" && (event.shift_key || event.alt_key)) {
+                remove_selected_feature();
+                }
+            return true;
+            };
+
+        // } else if (event.code === "KeyZ" && (event.metaKey || event.ctrlKey)) {
+        //     this.undoDraw();
+
         // Function to show the annotations
         const show_data = async (pos_features, neg_features) => {
             // Add the segmented features as polygons to the annotation layer
@@ -151,13 +165,14 @@ get_features: Function, get all the features of the layer, it takes no argument
                 edge_width: this.edge_width,
                 draw_edge_width: this.edge_width,
                 name: "Keep",
-                _rintf: true,
+                _rintf: "annotpos",
                 select_enabled: true,
                 draw_shape_type: "LineString",
                 draw_freehand: false,
                 select_feature_callback: (feature) => {
                     this.selected_feature = feature;
                 },
+                key_press_callback: keyDownCallback,
             });
 
             this.annotationLayer_neg = await viewer.add_shapes(this.neg_features, {
@@ -167,13 +182,14 @@ get_features: Function, get all the features of the layer, it takes no argument
                 edge_width: this.edge_width,
                 draw_edge_width: this.edge_width,
                 name: "Discard",
-                _rintf: true,
+                _rintf: "annotneg",
                 select_enabled: true,
                 draw_shape_type: "LineString",
                 draw_freehand: false,
                 select_feature_callback: (feature) => {
                     this.selected_feature = feature;
                 },
+                key_press_callback: keyDownCallback,
             });
 
             await viewer.update_slider("Classification", this.category === "Good" ? 1 : 0)
@@ -186,9 +202,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                 // Remove existing layers if there is any image loaded
                 await viewer.remove_layer({id: this.imageLayer.id});
                 await viewer.remove_layer({id: this.annotationLayer_pos.id});
-                // remove classificaiton widget
-                // await viewer.remove_widget({name: "Classification"});
-                // await viewer.remove_layer({id: this.annotationLayer_neg.id});
             }
 
             // [this.image, this.filename, this.newname] = await biocolab.get_random_image();
@@ -206,21 +219,18 @@ get_features: Function, get all the features of the layer, it takes no argument
             // save annotation even if it is empty
             // alert about current category
             console.log("saving, category: ", this.category);
-            // api.alert("Saving correction for " + this.image_basename + "!" + " Category: " + this.category);
 
             await biocolab.save_correction(annotation_pos, annotation_neg, this.image_basename, [this.image._rshape[0], this.image._rshape[1]], this.category);
             await api.showMessage("Saved correction for " + this.image_basename + "!" + " Category: " + this.category);
         };
 
         const node_dbclick_callback = async (node) => {
-            // await api.alert("selected node:" + JSON.stringify(node))
             // if not is not a leaf node (isLead) property, alert user to expand the folder and select a file
             if (!node.isLeaf) {
                 await api.alert("Please expand the folder and select a file");
                 return;
             }
             // save the current annotation and load the selected image
-            // await api.alert("selected node:" + node.title)
             await saveCorrection();
             await viewer.clear_layers();
             await getData(node.data.image_basename);
@@ -265,7 +275,7 @@ get_features: Function, get all the features of the layer, it takes no argument
             };
 
 
-            const remove_feature = async () => {
+            const remove_selected_feature = async () => {
 
                 if (!this.selected_feature) {
                     await api.alert("No feature selected");
@@ -306,8 +316,8 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "remall",
                     label: "Remove all",
                     callback: async () => {
-                        this.pos_features_backup = this.pos_features;
-                        this.neg_features_backup = this.neg_features;
+                        // this.pos_features_backup = this.annotationLayer_pos.get_features();
+                        // this.neg_features_backup = this.annotationLayer_neg.get_features();
                         await this.annotationLayer_pos.clear_features();
                         await this.annotationLayer_neg.clear_features();
                     },
@@ -316,24 +326,28 @@ get_features: Function, get all the features of the layer, it takes no argument
                     type: "button",
                     _rintf: "remline",
                     label: "Remove line",
-                    callback: remove_feature,
+                    callback: remove_selected_feature,
                 },
                 {
                     type: "button",
                     _rintf: "uremall",
-                    label: "Undo remove all",
+                    label: "Reload",
                     callback: async () => {
-                        // remove the current annotation layers
                         await viewer.clear_layers();
-                        if (this.pos_features_backup && this.neg_features_backup) {
-                            await show_data(this.pos_features_backup, this.neg_features_backup);
-                            }
-                        else {
-                            await api.alert("No backup available");
-                        }
-                        this.pos_features_backup = null;
-                        this.neg_features_backup = null;
-                    },
+                        await getData(this.image_basename);
+                    }
+                    // callback: async () => {
+                    //     // remove the current annotation layers
+                    //     await viewer.clear_layers();
+                    //     if (this.pos_features_backup && this.neg_features_backup) {
+                    //         await show_data(this.pos_features_backup, this.neg_features_backup);
+                    //         }
+                    //     else {
+                    //         await api.alert("No backup available");
+                    //         }
+                    //     this.pos_features_backup = null;
+                    //     this.neg_features_backup = null;
+                    // },
                 },
                 {
                     type: "button",
