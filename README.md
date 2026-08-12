@@ -62,7 +62,7 @@ uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
 - The **Samples** tab shows the full image hierarchy as a persistent tree.
   Double-clicking a sample saves the current correction before changing images.
   Compact editing controls are available in the **Actions** tab, and support
-  details are listed under **Contact**.
+  details and a link to the GitHub repository are listed under **Info**.
 - **Next** saves the current correction and opens the next image.
 - **Reload** discards unsaved browser changes and reloads the last saved mask.
 - Scalar images are explicitly rendered with the grayscale color map.

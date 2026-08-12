@@ -336,15 +336,22 @@ get_features: Function, get all the features of the layer, it takes no argument
         });
 
         await viewer.add_widget({
-            name: "Contact",
+            name: "Info",
             type: "list",
-            max_height: 190,
+            max_height: 220,
             elements: [
                 {label: "marvin.albert@bsse.ethz.ch"},
                 {label: "Image Analysis & Data Management"},
                 {label: "Single Cell Facility"},
                 {label: "D-BSSE, ETH Zurich"},
+                {
+                    label: "GitHub repository ↗",
+                    url: "https://github.com/m-albert/hypha-correction-tool",
+                },
             ],
+            select_callback: async (item) => {
+                if (item.url) await api.utils.openUrl(item.url);
+            },
         });
 
 
