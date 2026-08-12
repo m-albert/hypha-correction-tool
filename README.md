@@ -56,10 +56,11 @@ uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
 - Use the selection tool to move contour vertices. Draw a closed path in the
   Instances layer to add a missing instance.
 - Select a contour and use **Delete** (or Alt/Shift+D) to remove it.
-- The compact **Samples** panel keeps the editing actions above a collapsed image
-  selector, avoiding separate correction and sample-selection tabs.
+- The **Samples** tab shows the full image hierarchy as a persistent tree.
+  Double-clicking a sample saves the current correction before changing images.
+  Compact editing controls are available in the **Actions** tab, and support
+  details are listed under **Contact**.
 - **Next** saves the current correction and opens the next image.
-  Double-clicking a sample in the tree also saves before changing images.
 - **Reload** discards unsaved browser changes and reloads the last saved mask.
 - Scalar images are explicitly rendered with the grayscale color map.
 

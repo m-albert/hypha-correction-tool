@@ -215,8 +215,13 @@ get_features: Function, get all the features of the layer, it takes no argument
             await api.showMessage("Saved correction for " + this.image_basename + "!");
         };
 
-        const selectImage = async (imageBasename) => {
-            if (!imageBasename || imageBasename === this.image_basename) return;
+        const selectImage = async (node) => {
+            if (!node.isLeaf) {
+                await api.alert("Please expand the folder and select an image");
+                return;
+            }
+            const imageBasename = node.data.image_basename;
+            if (imageBasename === this.image_basename) return;
             await saveCorrection();
             await viewer.clear_layers();
             await getData(imageBasename);
@@ -236,13 +241,20 @@ get_features: Function, get all the features of the layer, it takes no argument
 
                 };
 
-        const imageBasenames = await biocolab.get_image_basenames();
-
-        // A single compact panel keeps actions above the collapsed sample list.
+        // Keep the full sample hierarchy visible instead of hiding it in a dropdown.
         await viewer.add_widget({
             name: "Samples",
-            type: "control",
+            type: "tree",
             max_height: 240,
+            node_dbclick_callback: selectImage,
+            nodes: await biocolab.get_widget_node_list_of_basenames(),
+        });
+
+        // Compact text-only controls avoid Kaibu's icon/label overlap.
+        await viewer.add_widget({
+            name: "Actions",
+            type: "control",
+            max_height: 210,
             elements: [
                 {
                     type: "button",
@@ -294,16 +306,18 @@ get_features: Function, get all the features of the layer, it takes no argument
                         await getData(next_ibn);
                     },
                 },
-                {
-                    type: "dropdown",
-                    _rintf: "samplemenu",
-                    label: "Select image…",
-                    tooltip: "Select an image",
-                    value: this.image_basename,
-                    options: imageBasenames,
-                    style: {"margin": "4px 2px", "max-width": "285px"},
-                    callback: selectImage,
-                },
+            ],
+        });
+
+        await viewer.add_widget({
+            name: "Contact",
+            type: "list",
+            max_height: 190,
+            elements: [
+                {label: "marvin.albert@bsse.ethz.ch"},
+                {label: "Image Analysis & Data Management"},
+                {label: "Single Cell Facility"},
+                {label: "D-BSSE, ETH Zurich"},
             ],
         });
 
