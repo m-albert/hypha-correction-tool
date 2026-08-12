@@ -30,9 +30,11 @@ exists, it is loaded and updated on the next editing session.
 From this repository:
 
 ```bash
-uv run --with-requirements requirements.txt python serve_tool.py \
-  /links/shared/scuanalysis/Hierlemann/Marta/data/run1/training
+uv run serve /links/shared/scuanalysis/Hierlemann/Marta/data/run1/training
 ```
+
+uv creates and updates the project environment from `pyproject.toml` and
+`uv.lock`; no separate installation step is needed.
 
 The command prints a long ImJoy URL. Send that complete URL to the collaborator
 and keep the terminal process running for the duration of the session. No inbound
@@ -43,8 +45,7 @@ newly deployed interface is not replaced by a stale browser or CDN copy.
 To choose another output suffix:
 
 ```bash
-uv run --with-requirements requirements.txt python serve_tool.py DIRECTORY \
-  --corrected-suffix _masks_reviewed.tif
+uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
 ```
 
 ## Editor workflow
@@ -66,5 +67,5 @@ collaborator.
 ## Filename options
 
 The defaults can be changed with `--mask-suffix` and `--corrected-suffix`. Run
-`python serve_tool.py --help` for all options, including selection of a different
-Hypha server or ImJoy plugin URL.
+`uv run serve --help` for all options, including selection of a different Hypha
+server or ImJoy plugin URL.

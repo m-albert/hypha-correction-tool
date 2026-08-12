@@ -1,5 +1,0 @@
-imjoy-rpc==0.5.59
-numpy<2
-scikit-image>=0.24
-tifffile>=2024.8.10
-websockets<12

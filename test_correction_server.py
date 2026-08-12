@@ -9,6 +9,7 @@ from correction_server import (
     discover_image_pairs,
     features_to_mask,
     mask_to_paths,
+    orient_for_viewer,
 )
 
 
@@ -46,6 +47,18 @@ class MaskConversionTests(unittest.TestCase):
         features = feature_collection(mask_to_paths(self.mask), "Polygon")
         result = features_to_mask(features, self.mask)
         np.testing.assert_array_equal(result, self.mask)
+
+    def test_viewer_orientation_round_trip_is_pixel_exact(self):
+        viewer_mask = orient_for_viewer(self.mask)
+        features = feature_collection(mask_to_paths(viewer_mask), "Polygon")
+        corrected_viewer_mask = features_to_mask(features, viewer_mask)
+        saved_mask = orient_for_viewer(corrected_viewer_mask)
+        np.testing.assert_array_equal(saved_mask, self.mask)
+
+    def test_viewer_orientation_flips_columns(self):
+        image = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.uint8)
+        expected = np.array([[3, 2, 1], [6, 5, 4]], dtype=np.uint8)
+        np.testing.assert_array_equal(orient_for_viewer(image), expected)
 
     def test_missing_feature_deletes_instance(self):
         paths = mask_to_paths(self.mask)

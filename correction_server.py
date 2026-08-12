@@ -72,6 +72,11 @@ def normalize_image(image: np.ndarray) -> np.ndarray:
     return np.clip((image - low) * (255.0 / (high - low)), 0, 255).astype(np.uint8)
 
 
+def orient_for_viewer(array: np.ndarray) -> np.ndarray:
+    """Mirror columns to compensate for Kaibu's horizontal display orientation."""
+    return np.flip(array, axis=1).copy()
+
+
 def mask_to_paths(mask: np.ndarray) -> list[list[list[float]]]:
     """Convert each non-zero instance to one editable outer contour.
 
@@ -245,8 +250,8 @@ async def start_server(
         loaded_saved = corrected_path.is_file()
         mask_path = corrected_path if loaded_saved else Path(pair["mask"])
 
-        image = normalize_image(imread(pair["image"]))
-        mask = imread(mask_path)
+        image = orient_for_viewer(normalize_image(imread(pair["image"])))
+        mask = orient_for_viewer(imread(mask_path))
         if image.shape[:2] != mask.shape:
             raise ValueError(
                 f"Image/mask shape mismatch for {image_basename}: "
@@ -263,7 +268,9 @@ async def start_server(
         corrected_path = Path(pair["corrected"])
         source_path = corrected_path if corrected_path.is_file() else Path(pair["mask"])
         original_mask = imread(source_path)
-        corrected_mask = features_to_mask(annotation_features, original_mask)
+        viewer_mask = orient_for_viewer(original_mask)
+        corrected_viewer_mask = features_to_mask(annotation_features, viewer_mask)
+        corrected_mask = orient_for_viewer(corrected_viewer_mask)
 
         temporary_path = corrected_path.with_name(f".{corrected_path.stem}.tmp.tif")
         imwrite(temporary_path, corrected_mask, photometric="minisblack")
