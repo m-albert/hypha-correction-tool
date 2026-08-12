@@ -267,7 +267,6 @@ get_features: Function, get all the features of the layer, it takes no argument
         };
 
         const loadNextImage = async () => {
-            await saveCorrection();
             const nextBasename = await biocolab.get_next_image_basename(
                 this.image_basename
             );
@@ -288,7 +287,6 @@ get_features: Function, get all the features of the layer, it takes no argument
 
             imageSwitchInProgress = true;
             try {
-                await saveCorrection();
                 await getData(imageBasename);
             } finally {
                 imageSwitchInProgress = false;
@@ -364,7 +362,7 @@ get_features: Function, get all the features of the layer, it takes no argument
                     type: "button",
                     _rintf: "nextim",
                     label: "Next",
-                    tooltip: "Save and load next image (N)",
+                    tooltip: "Discard unsaved changes and load next image (N)",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: loadNextImage,
                 },

@@ -56,15 +56,16 @@ uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
 - Use the selection tool to move contour vertices. Draw a closed path in the
   Instances layer to add a missing instance.
 - Select a contour and use **Delete**, **Backspace**, or Alt/Shift+D to remove it.
-- Keyboard shortcuts are **D** for draw mode, **S** to save, **N** to save and
-  open the next image, and **R** to discard unsaved changes and reload. Kaibu's
+- Keyboard shortcuts are **D** for draw mode, **S** to save, **N** to open the
+  next image, and **R** to discard unsaved changes and reload. Kaibu's
   Ctrl/Cmd+Z undo and arrow-key movement shortcuts remain available.
 - The **Samples** tab shows the sample hierarchy as a tree. Double-clicking a
-  sample saves the current correction before changing images.
+  sample changes images without saving the current correction.
   Compact editing controls are available in the **Actions** tab, and support
   details and a link to the GitHub repository are listed under **Info**.
-- **Next** saves the current correction and opens the next image.
+- **Next** discards unsaved changes and opens the next image.
 - **Reload** discards unsaved browser changes and reloads the last saved mask.
+- Corrected masks are written only when **Save** or the **S** shortcut is used.
 - Scalar images are explicitly rendered with the grayscale color map.
 
 Stop the Python process with Ctrl-C when the collaborator is finished. The share
