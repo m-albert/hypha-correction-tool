@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import urllib.parse
 from pathlib import Path
 
@@ -290,6 +291,8 @@ async def start_server(
         "annotation_service_id": service["id"],
         "token": token,
     }
+    separator = "&" if "?" in plugin_url else "?"
+    plugin_url = f"{plugin_url}{separator}v={int(time.time())}"
     encoded_plugin_url = urllib.parse.quote(plugin_url, safe="/:")
     encoded_config = urllib.parse.quote(
         json.dumps(config, separators=(",", ":")), safe="/"

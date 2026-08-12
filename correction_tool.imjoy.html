@@ -8,7 +8,7 @@
     "type": "window",
     "tags": [],
     "ui": "",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "cover": "",
     "description": "Refine instance-segmentation contours and save corrected masks.",
     "icon": "extension",
@@ -65,8 +65,9 @@ get_features: Function, get all the features of the layer, it takes no argument
         this.annotationLayer = null; // Layer displaying the instance annotations
         this.features = null; // Instance contours
         this.image_basename = null; // Base name of the current image
-        this.edgeColor = "green"; // Default edge color for annotations
-        this.edge_width = 10; // Default edge width for annotations
+        this.edgeColor = "#00ffff"; // Color used for newly drawn instances
+        this.faceColor = "rgba(0, 255, 255, 0.25)";
+        this.edge_width = 2; // Instance outline width
         this.selected_feature = null; // Selected feature
     }
 
@@ -118,6 +119,33 @@ get_features: Function, get all the features of the layer, it takes no argument
             return true;
             };
 
+        // Use a golden-angle hue sequence so consecutive instance labels are
+        // visually distinct while remaining deterministic across reloads.
+        const instanceColor = (index, alpha=1.0) => {
+            const hue = (index * 137.508) % 360;
+            const saturation = 0.78;
+            const lightness = 0.55;
+            const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+            const section = hue / 60;
+            const x = chroma * (1 - Math.abs((section % 2) - 1));
+            let red = 0;
+            let green = 0;
+            let blue = 0;
+            if (section < 1) [red, green, blue] = [chroma, x, 0];
+            else if (section < 2) [red, green, blue] = [x, chroma, 0];
+            else if (section < 3) [red, green, blue] = [0, chroma, x];
+            else if (section < 4) [red, green, blue] = [0, x, chroma];
+            else if (section < 5) [red, green, blue] = [x, 0, chroma];
+            else [red, green, blue] = [chroma, 0, x];
+            const offset = lightness - chroma / 2;
+            const rgb = [red, green, blue].map(
+                value => Math.round((value + offset) * 255)
+            );
+            return alpha === 1.0
+                ? `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
+                : `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+        };
+
         // } else if (event.code === "KeyZ" && (event.metaKey || event.ctrlKey)) {
         //     this.undoDraw();
 
@@ -125,20 +153,33 @@ get_features: Function, get all the features of the layer, it takes no argument
         const show_data = async () => {
             // Add the segmented features as polygons to the annotation layer
 
+            const edgeColors = this.features.map(
+                (_feature, index) => instanceColor(index)
+            );
+            const faceColors = this.features.map(
+                (_feature, index) => instanceColor(index, 0.25)
+            );
+            const edgeWidths = this.features.map(() => this.edge_width);
+
             this.imageLayer = await viewer.view_image(
                 this.image, {name: "Image", type: "itk-vtk"},
                 );
 
             this.annotationLayer = await viewer.add_shapes(this.features, {
-                shape_type: "path",
-                edge_color: this.edgeColor,
+                shape_type: "polygon",
+                edge_color: edgeColors,
+                face_color: faceColors,
                 draw_edge_color: this.edgeColor,
-                edge_width: this.edge_width,
+                draw_face_color: this.faceColor,
+                default_edge_color: this.edgeColor,
+                default_face_color: this.faceColor,
+                edge_width: edgeWidths,
                 draw_edge_width: this.edge_width,
+                default_edge_width: this.edge_width,
                 name: "Instances",
                 _rintf: "instances",
                 select_enabled: true,
-                draw_shape_type: "LineString",
+                draw_shape_type: "Polygon",
                 draw_freehand: false,
                 select_feature_callback: (feature) => {
                     this.selected_feature = feature;

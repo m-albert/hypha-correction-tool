@@ -12,13 +12,16 @@ from correction_server import (
 )
 
 
-def feature_collection(paths):
+def feature_collection(paths, geometry_type="LineString"):
     return {
         "type": "FeatureCollection",
         "features": [
             {
                 "type": "Feature",
-                "geometry": {"type": "LineString", "coordinates": path},
+                "geometry": {
+                    "type": geometry_type,
+                    "coordinates": [path] if geometry_type == "Polygon" else path,
+                },
                 "properties": {},
             }
             for path in paths
@@ -37,6 +40,11 @@ class MaskConversionTests(unittest.TestCase):
         result = features_to_mask(
             feature_collection(mask_to_paths(self.mask)), self.mask
         )
+        np.testing.assert_array_equal(result, self.mask)
+
+    def test_polygon_round_trip_is_pixel_exact(self):
+        features = feature_collection(mask_to_paths(self.mask), "Polygon")
+        result = features_to_mask(features, self.mask)
         np.testing.assert_array_equal(result, self.mask)
 
     def test_missing_feature_deletes_instance(self):
