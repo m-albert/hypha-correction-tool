@@ -92,5 +92,14 @@ class DiscoveryTests(unittest.TestCase):
             )
 
 
+class PluginConfigurationTests(unittest.TestCase):
+    def test_callback_widgets_are_reusable_remote_interfaces(self):
+        plugin = (Path(__file__).parent / "correction_tool.imjoy.html").read_text()
+
+        for widget_name in ("Samples", "Actions", "Info"):
+            marker = f'_rintf: true,\n            name: "{widget_name}"'
+            self.assertIn(marker, plugin)
+
+
 if __name__ == "__main__":
     unittest.main()

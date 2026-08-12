@@ -294,15 +294,16 @@ get_features: Function, get all the features of the layer, it takes no argument
         // Use Kaibu's tree widget: its rows prevent accidental browser text
         // selection and expose a dedicated double-click callback for loading.
         await viewer.add_widget({
+            _rintf: true,
             name: "Samples",
             type: "tree",
-            node_select_callback: selectImage,
             node_dbclick_callback: selectImage,
             nodes: await biocolab.get_widget_node_list_of_basenames(),
         });
 
         // Compact text-only controls avoid Kaibu's icon/label overlap.
         await viewer.add_widget({
+            _rintf: true,
             name: "Actions",
             type: "control",
             max_height: 210,
@@ -353,6 +354,7 @@ get_features: Function, get all the features of the layer, it takes no argument
         });
 
         await viewer.add_widget({
+            _rintf: true,
             name: "Info",
             type: "list",
             max_height: 220,
