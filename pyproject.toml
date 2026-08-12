@@ -9,11 +9,10 @@ description = "Browser-based correction of TIFF instance-segmentation masks"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "imjoy-rpc==0.5.59",
+    "hypha-rpc==0.21.46",
     "numpy<2",
     "scikit-image>=0.24",
     "tifffile>=2024.8.10",
-    "websockets<12",
 ]
 
 [project.scripts]

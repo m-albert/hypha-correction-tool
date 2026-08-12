@@ -12,7 +12,7 @@ from correction_server import (
     start_server,
 )
 
-DEFAULT_SERVER_URL = "https://hypha.bioimage.io"
+DEFAULT_SERVER_URL = "https://hypha.aicell.io"
 
 
 def positive_hours(value: str) -> float:

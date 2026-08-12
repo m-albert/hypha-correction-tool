@@ -14,7 +14,7 @@ from correction_server import (
     orient_for_viewer,
     start_server,
 )
-from serve_tool import parse_args
+from serve_tool import DEFAULT_SERVER_URL, parse_args
 
 
 def feature_collection(paths, geometry_type="LineString"):
@@ -104,8 +104,18 @@ class PluginConfigurationTests(unittest.TestCase):
             marker = f'_rintf: true,\n            name: "{widget_name}"'
             self.assertIn(marker, plugin)
 
+    def test_plugin_uses_current_hypha_rpc_client(self):
+        plugin = (Path(__file__).parent / "correction_tool.imjoy.html").read_text()
+
+        self.assertIn("hypha-rpc@0.21.46", plugin)
+        self.assertIn('config.server_url || "https://hypha.aicell.io"', plugin)
+        self.assertNotIn("imjoy-rpc@", plugin)
+
 
 class ShareLinkTests(unittest.IsolatedAsyncioTestCase):
+    def test_current_hypha_relay_is_the_default(self):
+        self.assertEqual(DEFAULT_SERVER_URL, "https://hypha.aicell.io")
+
     def test_default_link_expiry_is_24_hours(self):
         args = parse_args(["images"])
 

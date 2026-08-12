@@ -17,7 +17,7 @@
     "api_version": "0.1.8",
     "env": "",
     "permissions": [],
-    "requirements": ["https://cdn.jsdelivr.net/npm/imjoy-rpc@0.5.6/dist/hypha-rpc-websocket.min.js"],
+    "requirements": ["https://cdn.jsdelivr.net/npm/hypha-rpc@0.21.46/dist/hypha-rpc-websocket.min.js"],
     "dependencies": [],
     "defaults": {"w": 20, "h": 10}
 }
@@ -74,7 +74,7 @@ get_features: Function, get all the features of the layer, it takes no argument
     async run(ctx) {
         // Extract configuration settings
         const config = ctx.config || {};
-        const serverUrl = config.server_url || "https://ai.imjoy.io";
+        const serverUrl = config.server_url || "https://hypha.aicell.io";
         const annotationServiceId = config.annotation_service_id || "correction-tool";  // default for testing plugin
         await api.showMessage(`Connecting to server ${annotationServiceId}....`);
 

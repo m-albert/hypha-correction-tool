@@ -10,7 +10,7 @@ import urllib.parse
 from pathlib import Path
 
 import numpy as np
-from imjoy_rpc.hypha import connect_to_server
+from hypha_rpc import connect_to_server
 from skimage.draw import polygon
 from skimage.measure import find_contours
 from tifffile import imread, imwrite

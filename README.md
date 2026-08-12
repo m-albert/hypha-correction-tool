@@ -39,8 +39,10 @@ uv creates and updates the project environment from `pyproject.toml` and
 The command prints a long ImJoy URL. Send that complete URL to the collaborator
 and keep the terminal process running for the duration of the session. No inbound
 port or tunnel is needed: both the Python process and browser connect outbound to
-the Hypha relay. Each launch adds a cache-busting version to the plugin URL so a
-newly deployed interface is not replaced by a stale browser or CDN copy.
+the Hypha relay. The current Hypha RPC client reconnects and re-registers the
+service after a temporary connection interruption. Each launch adds a
+cache-busting version to the plugin URL so a newly deployed interface is not
+replaced by a stale browser or CDN copy.
 
 To choose another output suffix:
 
