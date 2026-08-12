@@ -21,6 +21,7 @@ DEFAULT_PLUGIN_URL = (
     "https://raw.githubusercontent.com/m-albert/hypha-correction-tool/"
     "main/correction_tool.imjoy.html"
 )
+DEFAULT_LINK_EXPIRY_SECONDS = 24 * 60 * 60
 
 
 def discover_image_pairs(
@@ -228,8 +229,12 @@ async def start_server(
     mask_suffix: str = "_masks.tif",
     corrected_suffix: str = "_masks_corrected.tif",
     plugin_url: str = DEFAULT_PLUGIN_URL,
+    link_expiry_seconds: int = DEFAULT_LINK_EXPIRY_SECONDS,
 ):
     """Register the correction service and return ``(server, annotator_url)``."""
+    if link_expiry_seconds <= 0:
+        raise ValueError("Link expiry must be greater than zero")
+
     root = Path(path_to_images).expanduser().resolve()
     if not root.is_dir():
         raise NotADirectoryError(root)
@@ -279,7 +284,7 @@ async def start_server(
         return str(corrected_path)
 
     server = await connect_to_server({"server_url": server_url})
-    token = await server.generate_token()
+    token = await server.generate_token({"expires_in": link_expiry_seconds})
     service = await server.register_service(
         {
             "name": "Segmentation Mask Correction Tool",

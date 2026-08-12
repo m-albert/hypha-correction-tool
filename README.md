@@ -48,6 +48,13 @@ To choose another output suffix:
 uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
 ```
 
+Share links expire after 24 hours by default. To choose another lifetime, while
+the serving process remains running:
+
+```bash
+uv run serve DIRECTORY --link-expiry-hours 48
+```
+
 ## Editor workflow
 
 - Each colored, translucent polygon in the **Instances** layer represents one

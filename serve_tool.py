@@ -6,12 +6,24 @@ import argparse
 import asyncio
 import logging
 
-from correction_server import DEFAULT_PLUGIN_URL, start_server
+from correction_server import (
+    DEFAULT_LINK_EXPIRY_SECONDS,
+    DEFAULT_PLUGIN_URL,
+    start_server,
+)
 
 DEFAULT_SERVER_URL = "https://hypha.bioimage.io"
 
 
-def parse_args() -> argparse.Namespace:
+def positive_hours(value: str) -> float:
+    """Parse a positive number of hours for the share-link lifetime."""
+    hours = float(value)
+    if hours <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return hours
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Serve TIFF images and instance masks through the web correction UI."
     )
@@ -22,7 +34,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mask-suffix", default="_masks.tif")
     parser.add_argument("--corrected-suffix", default="_masks_corrected.tif")
     parser.add_argument("--plugin-url", default=DEFAULT_PLUGIN_URL)
-    return parser.parse_args()
+    parser.add_argument(
+        "--link-expiry-hours",
+        type=positive_hours,
+        default=DEFAULT_LINK_EXPIRY_SECONDS / 3600,
+        help="share-link lifetime in hours (default: %(default)g)",
+    )
+    return parser.parse_args(argv)
 
 
 async def serve(args: argparse.Namespace) -> None:
@@ -32,8 +50,10 @@ async def serve(args: argparse.Namespace) -> None:
         mask_suffix=args.mask_suffix,
         corrected_suffix=args.corrected_suffix,
         plugin_url=args.plugin_url,
+        link_expiry_seconds=round(args.link_expiry_hours * 3600),
     )
     print("\nCorrection tool is ready. Keep this process running.")
+    print(f"Link token expires in {args.link_expiry_hours:g} hours.")
     print("Send this URL to the collaborator:\n")
     print(annotator_url)
     print("\nPress Ctrl-C to stop serving.\n")

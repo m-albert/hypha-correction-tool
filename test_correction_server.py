@@ -1,6 +1,8 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 import numpy as np
 from tifffile import imwrite
@@ -10,7 +12,9 @@ from correction_server import (
     features_to_mask,
     mask_to_paths,
     orient_for_viewer,
+    start_server,
 )
+from serve_tool import parse_args
 
 
 def feature_collection(paths, geometry_type="LineString"):
@@ -99,6 +103,44 @@ class PluginConfigurationTests(unittest.TestCase):
         for widget_name in ("Samples", "Actions", "Info"):
             marker = f'_rintf: true,\n            name: "{widget_name}"'
             self.assertIn(marker, plugin)
+
+
+class ShareLinkTests(unittest.IsolatedAsyncioTestCase):
+    def test_default_link_expiry_is_24_hours(self):
+        args = parse_args(["images"])
+
+        self.assertEqual(args.link_expiry_hours, 24)
+
+    def test_cli_accepts_custom_link_expiry(self):
+        args = parse_args(["images", "--link-expiry-hours", "24"])
+
+        self.assertEqual(args.link_expiry_hours, 24)
+
+    async def test_requested_expiry_is_passed_to_hypha(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            image = np.zeros((4, 4), dtype=np.uint8)
+            imwrite(root / "sample.tif", image)
+            imwrite(root / "sample_masks.tif", image)
+
+            server = SimpleNamespace(
+                config=SimpleNamespace(workspace="test-workspace"),
+                generate_token=AsyncMock(return_value="test-token"),
+                register_service=AsyncMock(return_value={"id": "correction-tool"}),
+            )
+            with patch(
+                "correction_server.connect_to_server",
+                AsyncMock(return_value=server),
+            ):
+                await start_server(
+                    "https://example.test",
+                    root,
+                    link_expiry_seconds=24 * 60 * 60,
+                )
+
+            server.generate_token.assert_awaited_once_with(
+                {"expires_in": 24 * 60 * 60}
+            )
 
 if __name__ == "__main__":
     unittest.main()
