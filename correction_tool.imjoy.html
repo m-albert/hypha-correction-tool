@@ -249,7 +249,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "savecorr",
                     label: "Save",
                     tooltip: "Save correction",
-                    icon: "content-save-outline",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: saveCorrection,
                 },
@@ -258,7 +257,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "remall",
                     label: "Clear",
                     tooltip: "Remove all instances",
-                    icon: "delete-sweep-outline",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: async () => {
                         await this.annotationLayer.clear_features();
@@ -269,7 +267,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "remline",
                     label: "Delete",
                     tooltip: "Remove selected instance",
-                    icon: "delete-outline",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: remove_selected_feature,
                 },
@@ -278,7 +275,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "uremall",
                     label: "Reload",
                     tooltip: "Discard unsaved changes and reload",
-                    icon: "reload",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: async () => {
                         await viewer.clear_layers();
@@ -290,7 +286,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "nextim",
                     label: "Next",
                     tooltip: "Save and load next image",
-                    icon: "arrow-right",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: async () => {
                         await saveCorrection();
@@ -304,7 +299,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                     _rintf: "samplemenu",
                     label: "Select image…",
                     tooltip: "Select an image",
-                    icon: "image-multiple-outline",
                     value: this.image_basename,
                     options: imageBasenames,
                     style: {"margin": "4px 2px", "max-width": "285px"},
