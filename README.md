@@ -1,5 +1,67 @@
-## Custom micrograph segmentation correction tool
+# Segmentation mask correction tool
 
-This is a repository to test the creation of a custom segmentation correction tool using imjoy, kaibu and hypha.
+This package serves paired TIFF images and instance-segmentation masks to a
+browser-based Kaibu editor through Hypha. The image data remain on the machine
+running the Python process and are sent to the collaborator's browser on demand.
 
-Based on code here: https://github.com/bioimage-io/bioimageio-colab
+## Expected files
+
+For every image, the directory must contain a mask with the same basename:
+
+```text
+sample.tif
+sample_masks.tif
+```
+
+Masks must be 2-D integer label images: `0` is background and every positive
+integer identifies one instance. Subdirectories are supported.
+
+The editor writes corrections beside the source files as:
+
+```text
+sample_masks_corrected.tif
+```
+
+Original `*_masks.tif` files are never overwritten. If a corrected file already
+exists, it is loaded and updated on the next editing session.
+
+## Run it
+
+From this repository:
+
+```bash
+uv run --with-requirements requirements.txt python serve_tool.py \
+  /links/shared/scuanalysis/Hierlemann/Marta/data/run1/training
+```
+
+The command prints a long ImJoy URL. Send that complete URL to the collaborator
+and keep the terminal process running for the duration of the session. No inbound
+port or tunnel is needed: both the Python process and browser connect outbound to
+the Hypha relay.
+
+To choose another output suffix:
+
+```bash
+uv run --with-requirements requirements.txt python serve_tool.py DIRECTORY \
+  --corrected-suffix _masks_reviewed.tif
+```
+
+## Editor workflow
+
+- Each contour in the **Instances** layer represents one instance label.
+- Use the selection tool to move contour vertices. Draw a closed path in the
+  Instances layer to add a missing instance.
+- Select a contour and use **Remove instance** (or Alt/Shift+D) to delete it.
+- **Next image** saves the current correction and opens the next image.
+  Double-clicking a sample in the tree also saves before changing images.
+- **Reload** discards unsaved browser changes and reloads the last saved mask.
+
+Stop the Python process with Ctrl-C when the collaborator is finished. The share
+URL contains a temporary workspace token, so share it only with the intended
+collaborator.
+
+## Filename options
+
+The defaults can be changed with `--mask-suffix` and `--corrected-suffix`. Run
+`python serve_tool.py --help` for all options, including selection of a different
+Hypha server or ImJoy plugin URL.

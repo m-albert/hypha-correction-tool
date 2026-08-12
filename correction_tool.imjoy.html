@@ -4,13 +4,13 @@
 
 <config lang="json">
 {
-    "name": "Untitled Plugin",
+    "name": "Segmentation Mask Correction Tool",
     "type": "window",
     "tags": [],
     "ui": "",
     "version": "0.1.0",
     "cover": "",
-    "description": "[TODO: describe this plugin with one sentence.]",
+    "description": "Refine instance-segmentation contours and save corrected masks.",
     "icon": "extension",
     "inputs": null,
     "outputs": null,
@@ -62,20 +62,12 @@ get_features: Function, get all the features of the layer, it takes no argument
         this.mask = null; // Current mask
         this.filename = null; // Filename of the current image
         this.imageLayer = null; // Layer displaying the image
-        this.annotationLayer_pos = null; // Layer displaying the annotations
-        this.annotationLayer_neg = null; // Layer displaying the annotations
-        this.category = null; // Category of the current image
-        this.pos_features = null; // Features for the positive class
-        this.neg_features = null; // Features for the negative class
-        this.pos_features_backup = null; // Layer displaying the annotations
-        this.neg_features_backup = null; // Layer displaying the annotations
+        this.annotationLayer = null; // Layer displaying the instance annotations
+        this.features = null; // Instance contours
         this.image_basename = null; // Base name of the current image
-        this.edgeColor_pos = "green"; // Default edge color for annotations
-        this.edgeColor_neg = "red"; // Default edge color for annotations
+        this.edgeColor = "green"; // Default edge color for annotations
         this.edge_width = 10; // Default edge width for annotations
         this.selected_feature = null; // Selected feature
-        this.selected_feature_class = null; // Class of the selected feature
-        this.selected_feature_id = null; // ID of the selected feature
     }
 
     async run(ctx) {
@@ -118,30 +110,9 @@ get_features: Function, get all the features of the layer, it takes no argument
             return;
         }
 
-        await viewer.set_sliders([
-            {
-                _rintf: true,
-                name: "Classification",
-                min: 0,
-                max: 1,
-                step: 1,
-                value: 1,
-                change_callback: (value) => {
-                    // return if no image is loaded
-                    if (!this.image) return;
-                    this.category = value === 1 ? "Good" : "Bad";
-                    console.log("z slider changed., category: ", this.category);
-                    api.showMessage("New classification: " + this.category);
-                }
-            },
-            ]);
-
         // Key callbacks
         const keyDownCallback = async (event) => {
-            if (event.code === "KeyS" && (event.shift_key || event.alt_key)) {
-                swap_category();
-                }
-            else if (event.code === "KeyD" && (event.shift_key || event.alt_key)) {
+            if (event.code === "KeyD" && (event.shift_key || event.alt_key)) {
                 remove_selected_feature();
                 }
             return true;
@@ -151,21 +122,21 @@ get_features: Function, get all the features of the layer, it takes no argument
         //     this.undoDraw();
 
         // Function to show the annotations
-        const show_data = async (pos_features, neg_features) => {
+        const show_data = async () => {
             // Add the segmented features as polygons to the annotation layer
 
             this.imageLayer = await viewer.view_image(
-                this.image, {name: "Micrograph", type: "itk-vtk"},
+                this.image, {name: "Image", type: "itk-vtk"},
                 );
 
-            this.annotationLayer_pos = await viewer.add_shapes(this.pos_features, {
+            this.annotationLayer = await viewer.add_shapes(this.features, {
                 shape_type: "path",
-                edge_color: this.edgeColor_pos,
-                draw_edge_color: this.edgeColor_pos,
+                edge_color: this.edgeColor,
+                draw_edge_color: this.edgeColor,
                 edge_width: this.edge_width,
                 draw_edge_width: this.edge_width,
-                name: "Keep",
-                _rintf: "annotpos",
+                name: "Instances",
+                _rintf: "instances",
                 select_enabled: true,
                 draw_shape_type: "LineString",
                 draw_freehand: false,
@@ -174,25 +145,6 @@ get_features: Function, get all the features of the layer, it takes no argument
                 },
                 key_press_callback: keyDownCallback,
             });
-
-            this.annotationLayer_neg = await viewer.add_shapes(this.neg_features, {
-                shape_type: "path",
-                edge_color: this.edgeColor_neg,
-                draw_edge_color: this.edgeColor_neg,
-                edge_width: this.edge_width,
-                draw_edge_width: this.edge_width,
-                name: "Discard",
-                _rintf: "annotneg",
-                select_enabled: true,
-                draw_shape_type: "LineString",
-                draw_freehand: false,
-                select_feature_callback: (feature) => {
-                    this.selected_feature = feature;
-                },
-                key_press_callback: keyDownCallback,
-            });
-
-            await viewer.update_slider("Classification", this.category === "Good" ? 1 : 0)
         };
 
         // Function to get a new image and set up the viewer
@@ -201,27 +153,22 @@ get_features: Function, get all the features of the layer, it takes no argument
             if (this.image !== null) {
                 // Remove existing layers if there is any image loaded
                 await viewer.remove_layer({id: this.imageLayer.id});
-                await viewer.remove_layer({id: this.annotationLayer_pos.id});
+                await viewer.remove_layer({id: this.annotationLayer.id});
             }
 
-            // [this.image, this.filename, this.newname] = await biocolab.get_random_image();
-            [this.image, this.pos_features, this.neg_features, this.image_basename, this.loaded_saved, this.category] = await biocolab.get_data_by_basename(basename);
+            [this.image, this.features, this.image_basename, this.loaded_saved] = await biocolab.get_data_by_basename(basename);
 
-            await show_data(this.pos_features, this.neg_features);
+            await show_data();
 
         };
 
         // Function to save the annotation
         const saveCorrection = async () => {
-            if (!this.annotationLayer_pos) return;
-            const annotation_pos = await this.annotationLayer_pos.get_features();
-            const annotation_neg = await this.annotationLayer_neg.get_features();
-            // save annotation even if it is empty
-            // alert about current category
-            console.log("saving, category: ", this.category);
-
-            await biocolab.save_correction(annotation_pos, annotation_neg, this.image_basename, [this.image._rshape[0], this.image._rshape[1]], this.category);
-            await api.showMessage("Saved correction for " + this.image_basename + "!" + " Category: " + this.category);
+            if (!this.annotationLayer) return;
+            const annotation = await this.annotationLayer.get_features();
+            // Save the annotation even if it is empty.
+            await biocolab.save_correction(annotation, this.image_basename);
+            await api.showMessage("Saved correction for " + this.image_basename + "!");
         };
 
         const node_dbclick_callback = async (node) => {
@@ -248,33 +195,6 @@ get_features: Function, get all the features of the layer, it takes no argument
         )
 
 
-        const swap_category = async () => {
-
-            if (!this.selected_feature) {
-                await api.alert("No feature selected");
-                return;
-            }
-
-            const features_pos = await this.annotationLayer_pos.get_features();
-
-            // check if feature id is in the positive class
-            const pos_is_source = features_pos.features.find(f => f.id === this.selected_feature.id);
-
-            if (pos_is_source) {
-                await this.annotationLayer_pos.remove_feature(this.selected_feature.id);
-                this.selected_feature.properties.edge_color = this.edgeColor_neg;
-                await this.annotationLayer_neg.add_feature(this.selected_feature);
-            } else {
-                await this.annotationLayer_neg.remove_feature(this.selected_feature.id);
-                this.selected_feature.properties.edge_color = this.edgeColor_pos;
-                await this.annotationLayer_pos.add_feature(this.selected_feature);
-            }
-
-            this.selected_feature = null;
-
-            };
-
-
             const remove_selected_feature = async () => {
 
                 if (!this.selected_feature) {
@@ -282,18 +202,7 @@ get_features: Function, get all the features of the layer, it takes no argument
                     return;
                 }
 
-                const features_pos = await this.annotationLayer_pos.get_features();
-                const features_neg = await this.annotationLayer_neg.get_features();
-
-                // check if feature id is in the positive class
-                const pos_is_source = features_pos.features.find(f => f.id === this.selected_feature.id);
-                const neg_is_source = features_neg.features.find(f => f.id === this.selected_feature.id);
-
-                if (pos_is_source) {
-                    await this.annotationLayer_pos.remove_feature(this.selected_feature.id);
-                } else if (neg_is_source) {
-                    await this.annotationLayer_neg.remove_feature(this.selected_feature.id);
-                }
+                await this.annotationLayer.remove_feature(this.selected_feature.id);
 
                 this.selected_feature = null;
 
@@ -307,25 +216,22 @@ get_features: Function, get all the features of the layer, it takes no argument
             elements: [
                 {
                     type: "button",
-                    _rintf: "swapcat",
-                    label: "Swap category",
-                    callback: swap_category,
+                    _rintf: "savecorr",
+                    label: "Save correction",
+                    callback: saveCorrection,
                 },
                 {
                     type: "button",
                     _rintf: "remall",
-                    label: "Remove all",
+                    label: "Remove all instances",
                     callback: async () => {
-                        // this.pos_features_backup = this.annotationLayer_pos.get_features();
-                        // this.neg_features_backup = this.annotationLayer_neg.get_features();
-                        await this.annotationLayer_pos.clear_features();
-                        await this.annotationLayer_neg.clear_features();
+                        await this.annotationLayer.clear_features();
                     },
                 },
                 {
                     type: "button",
                     _rintf: "remline",
-                    label: "Remove line",
+                    label: "Remove instance",
                     callback: remove_selected_feature,
                 },
                 {
@@ -336,23 +242,11 @@ get_features: Function, get all the features of the layer, it takes no argument
                         await viewer.clear_layers();
                         await getData(this.image_basename);
                     }
-                    // callback: async () => {
-                    //     // remove the current annotation layers
-                    //     await viewer.clear_layers();
-                    //     if (this.pos_features_backup && this.neg_features_backup) {
-                    //         await show_data(this.pos_features_backup, this.neg_features_backup);
-                    //         }
-                    //     else {
-                    //         await api.alert("No backup available");
-                    //         }
-                    //     this.pos_features_backup = null;
-                    //     this.neg_features_backup = null;
-                    // },
                 },
                 {
                     type: "button",
                     _rintf: "nextim",
-                    label: "Next micrograph",
+                    label: "Next image",
                     callback: async () => {
                         await saveCorrection();
                         await viewer.clear_layers();
