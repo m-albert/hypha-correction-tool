@@ -100,6 +100,11 @@ class PluginConfigurationTests(unittest.TestCase):
             marker = f'_rintf: true,\n            name: "{widget_name}"'
             self.assertIn(marker, plugin)
 
+    def test_plugin_supports_deployed_legacy_grayscale_api(self):
+        plugin = (Path(__file__).parent / "correction_tool.imjoy.html").read_text()
+
+        self.assertIn('set_color_map(0, "Grayscale")', plugin)
+
 
 if __name__ == "__main__":
     unittest.main()

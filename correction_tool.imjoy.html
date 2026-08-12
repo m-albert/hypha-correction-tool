@@ -167,23 +167,23 @@ get_features: Function, get all the features of the layer, it takes no argument
         };
 
         const setGrayscaleColorMap = async (imageLayer) => {
-            if (!imageLayer.set_image_color_map) return;
-
-            // ITK/VTK initializes parts of its image UI asynchronously and may
-            // overwrite a LUT set immediately after view_image() with Viridis.
-            // Reapply and verify the preset after those deferred updates settle.
-            for (const delay of [0, 50, 200, 500]) {
-                if (delay) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-                await imageLayer.set_image_color_map("Grayscale", 0);
-            }
-            if (imageLayer.get_image_color_map) {
-                const colorMap = await imageLayer.get_image_color_map(0);
-                if (colorMap !== "Grayscale") {
+            // The ITK/VTK build deployed with this Kaibu fork uses the legacy
+            // setColorMap(component, preset) API. Keep the newer API as a fallback.
+            if (imageLayer.set_color_map) {
+                await imageLayer.set_color_map(0, "Grayscale");
+                if (
+                    imageLayer.get_color_map &&
+                    await imageLayer.get_color_map(0) !== "Grayscale"
+                ) {
                     throw new Error("Could not apply the Grayscale image color map");
                 }
+                return;
             }
+            if (imageLayer.set_image_color_map) {
+                await imageLayer.set_image_color_map("Grayscale", 0, "Image");
+                return;
+            }
+            throw new Error("This viewer does not expose a color-map API");
         };
 
         // } else if (event.code === "KeyZ" && (event.metaKey || event.ctrlKey)) {
