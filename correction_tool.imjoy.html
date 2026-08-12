@@ -256,14 +256,25 @@ get_features: Function, get all the features of the layer, it takes no argument
             await getData(nextBasename);
         };
 
-        const selectImage = async (node) => {
-            if (!node.isLeaf) {
+        let imageSwitchInProgress = false;
+        const selectImage = async (selection) => {
+            const node = Array.isArray(selection) ? selection[0] : selection;
+            if (!node || !node.isLeaf) {
                 return;
             }
             const imageBasename = node.data.image_basename;
-            if (imageBasename === this.image_basename) return;
-            await saveCorrection();
-            await getData(imageBasename);
+            if (
+                imageSwitchInProgress ||
+                imageBasename === this.image_basename
+            ) return;
+
+            imageSwitchInProgress = true;
+            try {
+                await saveCorrection();
+                await getData(imageBasename);
+            } finally {
+                imageSwitchInProgress = false;
+            }
         };
 
 
@@ -285,6 +296,7 @@ get_features: Function, get all the features of the layer, it takes no argument
         await viewer.add_widget({
             name: "Samples",
             type: "tree",
+            node_select_callback: selectImage,
             node_dbclick_callback: selectImage,
             nodes: await biocolab.get_widget_node_list_of_basenames(),
         });
