@@ -59,8 +59,8 @@ uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
 - Keyboard shortcuts are **D** for draw mode, **S** to save, **N** to save and
   open the next image, and **R** to discard unsaved changes and reload. Kaibu's
   Ctrl/Cmd+Z undo and arrow-key movement shortcuts remain available.
-- The **Samples** tab shows the full image hierarchy as a persistent tree.
-  Double-clicking a sample saves the current correction before changing images.
+- The **Samples** tab shows an always-visible, compact sample list with a single
+  scrollbar. Selecting a sample saves the current correction before changing images.
   Compact editing controls are available in the **Actions** tab, and support
   details and a link to the GitHub repository are listed under **Info**.
 - **Next** saves the current correction and opens the next image.

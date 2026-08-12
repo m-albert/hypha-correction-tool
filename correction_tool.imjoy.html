@@ -249,12 +249,7 @@ get_features: Function, get all the features of the layer, it takes no argument
             await getData(nextBasename);
         };
 
-        const selectImage = async (node) => {
-            if (!node.isLeaf) {
-                await api.alert("Please expand the folder and select an image");
-                return;
-            }
-            const imageBasename = node.data.image_basename;
+        const selectImage = async (imageBasename) => {
             if (imageBasename === this.image_basename) return;
             await saveCorrection();
             await viewer.clear_layers();
@@ -275,12 +270,21 @@ get_features: Function, get all the features of the layer, it takes no argument
 
                 };
 
-        // Keep the full sample hierarchy visible instead of hiding it in a dropdown.
+        // Kaibu's tree has its own fixed scroll region, which creates nested
+        // scrollbars inside a constrained tab. The list stays permanently visible
+        // and lets the tab provide the only scrollbar.
+        const imageBasenames = await biocolab.get_image_basenames();
         await viewer.add_widget({
             name: "Samples",
-            type: "tree",
-            node_dbclick_callback: selectImage,
-            nodes: await biocolab.get_widget_node_list_of_basenames(),
+            type: "list",
+            max_height: 240,
+            elements: imageBasenames.map(imageBasename => ({
+                label: imageBasename,
+                image_basename: imageBasename,
+            })),
+            select_callback: async (item) => {
+                await selectImage(item.image_basename);
+            },
         });
 
         // Compact text-only controls avoid Kaibu's icon/label overlap.
