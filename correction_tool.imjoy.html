@@ -214,13 +214,22 @@ get_features: Function, get all the features of the layer, it takes no argument
         // Function to get a new image and set up the viewer
         // takes a basename as input, by default it will get a random image
         const getData = async (basename=null) => {
-            if (this.image !== null) {
-                // Remove existing layers if there is any image loaded
+            // Fetch first so a failed request leaves the current image intact.
+            const nextData = await biocolab.get_data_by_basename(basename);
+
+            // Remove each existing layer exactly once. Calling clear_layers before
+            // this left stale layer handles and broke subsequent sample changes.
+            if (this.imageLayer) {
                 await viewer.remove_layer({id: this.imageLayer.id});
+                this.imageLayer = null;
+            }
+            if (this.annotationLayer) {
                 await viewer.remove_layer({id: this.annotationLayer.id});
+                this.annotationLayer = null;
             }
 
-            [this.image, this.features, this.image_basename, this.loaded_saved] = await biocolab.get_data_by_basename(basename);
+            [this.image, this.features, this.image_basename, this.loaded_saved] = nextData;
+            this.selected_feature = null;
 
             await show_data();
 
@@ -236,13 +245,11 @@ get_features: Function, get all the features of the layer, it takes no argument
         };
 
         const reloadCurrentImage = async () => {
-            await viewer.clear_layers();
             await getData(this.image_basename);
         };
 
         const loadNextImage = async () => {
             await saveCorrection();
-            await viewer.clear_layers();
             const nextBasename = await biocolab.get_next_image_basename(
                 this.image_basename
             );
@@ -252,7 +259,6 @@ get_features: Function, get all the features of the layer, it takes no argument
         const selectImage = async (imageBasename) => {
             if (imageBasename === this.image_basename) return;
             await saveCorrection();
-            await viewer.clear_layers();
             await getData(imageBasename);
         };
 
