@@ -55,10 +55,13 @@ uv run serve DIRECTORY --corrected-suffix _masks_reviewed.tif
   labels; fills use 25% opacity with a thin outline.
 - Use the selection tool to move contour vertices. Draw a closed path in the
   Instances layer to add a missing instance.
-- Select a contour and use **Remove instance** (or Alt/Shift+D) to delete it.
-- **Next image** saves the current correction and opens the next image.
+- Select a contour and use **Delete** (or Alt/Shift+D) to remove it.
+- The compact **Samples** panel keeps the editing actions above a collapsed image
+  selector, avoiding separate correction and sample-selection tabs.
+- **Next** saves the current correction and opens the next image.
   Double-clicking a sample in the tree also saves before changing images.
 - **Reload** discards unsaved browser changes and reloads the last saved mask.
+- Scalar images are explicitly rendered with the grayscale color map.
 
 Stop the Python process with Ctrl-C when the collaborator is finished. The share
 URL contains a temporary workspace token, so share it only with the intended

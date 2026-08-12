@@ -8,7 +8,7 @@
     "type": "window",
     "tags": [],
     "ui": "",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "cover": "",
     "description": "Refine instance-segmentation contours and save corrected masks.",
     "icon": "extension",
@@ -164,6 +164,9 @@ get_features: Function, get all the features of the layer, it takes no argument
             this.imageLayer = await viewer.view_image(
                 this.image, {name: "Image", type: "itk-vtk"},
                 );
+            if (this.imageLayer.set_image_color_map) {
+                await this.imageLayer.set_image_color_map("Grayscale", 0);
+            }
 
             this.annotationLayer = await viewer.add_shapes(this.features, {
                 shape_type: "polygon",
@@ -212,28 +215,12 @@ get_features: Function, get all the features of the layer, it takes no argument
             await api.showMessage("Saved correction for " + this.image_basename + "!");
         };
 
-        const node_dbclick_callback = async (node) => {
-            // if not is not a leaf node (isLead) property, alert user to expand the folder and select a file
-            if (!node.isLeaf) {
-                await api.alert("Please expand the folder and select a file");
-                return;
-            }
-            // save the current annotation and load the selected image
+        const selectImage = async (imageBasename) => {
+            if (!imageBasename || imageBasename === this.image_basename) return;
             await saveCorrection();
             await viewer.clear_layers();
-            await getData(node.data.image_basename);
-        }
-
-
-        const tree = await viewer.add_widget(
-            {
-                "_rintf": true,
-                "type": "tree",
-                "name": "Sample selection",
-                "node_dbclick_callback": node_dbclick_callback,
-                "nodes": await biocolab.get_widget_node_list_of_basenames(),
-            }
-        )
+            await getData(imageBasename);
+        };
 
 
             const remove_selected_feature = async () => {
@@ -249,22 +236,30 @@ get_features: Function, get all the features of the layer, it takes no argument
 
                 };
 
-        // Add a control widget with a button to load the next image
+        const imageBasenames = await biocolab.get_image_basenames();
+
+        // A single compact panel keeps actions above the collapsed sample list.
         await viewer.add_widget({
-            // _rintf: true,
-            name: "Correcting",
+            name: "Samples",
             type: "control",
+            max_height: 240,
             elements: [
                 {
                     type: "button",
                     _rintf: "savecorr",
-                    label: "Save correction",
+                    label: "Save",
+                    tooltip: "Save correction",
+                    icon: "content-save-outline",
+                    style: {"min-width": "auto", "margin": "2px"},
                     callback: saveCorrection,
                 },
                 {
                     type: "button",
                     _rintf: "remall",
-                    label: "Remove all instances",
+                    label: "Clear",
+                    tooltip: "Remove all instances",
+                    icon: "delete-sweep-outline",
+                    style: {"min-width": "auto", "margin": "2px"},
                     callback: async () => {
                         await this.annotationLayer.clear_features();
                     },
@@ -272,13 +267,19 @@ get_features: Function, get all the features of the layer, it takes no argument
                 {
                     type: "button",
                     _rintf: "remline",
-                    label: "Remove instance",
+                    label: "Delete",
+                    tooltip: "Remove selected instance",
+                    icon: "delete-outline",
+                    style: {"min-width": "auto", "margin": "2px"},
                     callback: remove_selected_feature,
                 },
                 {
                     type: "button",
                     _rintf: "uremall",
                     label: "Reload",
+                    tooltip: "Discard unsaved changes and reload",
+                    icon: "reload",
+                    style: {"min-width": "auto", "margin": "2px"},
                     callback: async () => {
                         await viewer.clear_layers();
                         await getData(this.image_basename);
@@ -287,7 +288,10 @@ get_features: Function, get all the features of the layer, it takes no argument
                 {
                     type: "button",
                     _rintf: "nextim",
-                    label: "Next image",
+                    label: "Next",
+                    tooltip: "Save and load next image",
+                    icon: "arrow-right",
+                    style: {"min-width": "auto", "margin": "2px"},
                     callback: async () => {
                         await saveCorrection();
                         await viewer.clear_layers();
@@ -296,12 +300,15 @@ get_features: Function, get all the features of the layer, it takes no argument
                     },
                 },
                 {
-                    type: "button",
-                    _rintf: "showibn",
-                    label: "Show filename",
-                    callback: async () => {
-                        await api.showMessage("Current image: " + this.image_basename);
-                    },
+                    type: "dropdown",
+                    _rintf: "samplemenu",
+                    label: "Select image…",
+                    tooltip: "Select an image",
+                    icon: "image-multiple-outline",
+                    value: this.image_basename,
+                    options: imageBasenames,
+                    style: {"margin": "4px 2px", "max-width": "285px"},
+                    callback: selectImage,
                 },
             ],
         });

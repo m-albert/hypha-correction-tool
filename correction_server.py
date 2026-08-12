@@ -288,6 +288,7 @@ async def start_server(
             "get_data_by_basename": get_data_by_basename,
             "save_correction": save_correction,
             "get_widget_node_list_of_basenames": lambda: build_tree(basenames),
+            "get_image_basenames": lambda: basenames,
             "get_next_image_basename": get_next_image_basename,
         }
     )

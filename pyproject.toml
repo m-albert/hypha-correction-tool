@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hypha-correction-tool"
-version = "0.2.0"
+version = "0.3.0"
 description = "Browser-based correction of TIFF instance-segmentation masks"
 readme = "README.md"
 requires-python = ">=3.10"
