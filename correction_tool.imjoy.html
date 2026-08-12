@@ -114,10 +114,30 @@ get_features: Function, get all the features of the layer, it takes no argument
         // Key callbacks
         const keyDownCallback = async (event) => {
             if (event.code === "KeyD" && (event.shift_key || event.alt_key)) {
-                remove_selected_feature();
-                }
-            return true;
-            };
+                await remove_selected_feature();
+                return true;
+            }
+            if (event.code === "KeyD" && !event.ctrl_key && !event.meta_key) {
+                await this.annotationLayer.update_config({draw_enable: true});
+                return true;
+            }
+            if (event.code === "KeyS" && !event.ctrl_key && !event.meta_key) {
+                await saveCorrection();
+                return true;
+            }
+            if (event.code === "KeyN" && !event.ctrl_key && !event.meta_key) {
+                await loadNextImage();
+                return true;
+            }
+            if (event.code === "KeyR" && !event.ctrl_key && !event.meta_key) {
+                await reloadCurrentImage();
+                return true;
+            }
+
+            // Let Kaibu process its native Delete/Backspace, Ctrl/Cmd+Z and arrow
+            // shortcuts. Returning true here used to suppress all of them.
+            return false;
+        };
 
         // Use a golden-angle hue sequence so consecutive instance labels are
         // visually distinct while remaining deterministic across reloads.
@@ -215,6 +235,20 @@ get_features: Function, get all the features of the layer, it takes no argument
             await api.showMessage("Saved correction for " + this.image_basename + "!");
         };
 
+        const reloadCurrentImage = async () => {
+            await viewer.clear_layers();
+            await getData(this.image_basename);
+        };
+
+        const loadNextImage = async () => {
+            await saveCorrection();
+            await viewer.clear_layers();
+            const nextBasename = await biocolab.get_next_image_basename(
+                this.image_basename
+            );
+            await getData(nextBasename);
+        };
+
         const selectImage = async (node) => {
             if (!node.isLeaf) {
                 await api.alert("Please expand the folder and select an image");
@@ -260,7 +294,7 @@ get_features: Function, get all the features of the layer, it takes no argument
                     type: "button",
                     _rintf: "savecorr",
                     label: "Save",
-                    tooltip: "Save correction",
+                    tooltip: "Save correction (S)",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: saveCorrection,
                 },
@@ -278,7 +312,7 @@ get_features: Function, get all the features of the layer, it takes no argument
                     type: "button",
                     _rintf: "remline",
                     label: "Delete",
-                    tooltip: "Remove selected instance",
+                    tooltip: "Remove selected instance (Delete/Backspace)",
                     style: {"min-width": "auto", "margin": "2px"},
                     callback: remove_selected_feature,
                 },
@@ -286,25 +320,17 @@ get_features: Function, get all the features of the layer, it takes no argument
                     type: "button",
                     _rintf: "uremall",
                     label: "Reload",
-                    tooltip: "Discard unsaved changes and reload",
+                    tooltip: "Discard unsaved changes and reload (R)",
                     style: {"min-width": "auto", "margin": "2px"},
-                    callback: async () => {
-                        await viewer.clear_layers();
-                        await getData(this.image_basename);
-                    }
+                    callback: reloadCurrentImage,
                 },
                 {
                     type: "button",
                     _rintf: "nextim",
                     label: "Next",
-                    tooltip: "Save and load next image",
+                    tooltip: "Save and load next image (N)",
                     style: {"min-width": "auto", "margin": "2px"},
-                    callback: async () => {
-                        await saveCorrection();
-                        await viewer.clear_layers();
-                        const next_ibn = await biocolab.get_next_image_basename(this.image_basename);
-                        await getData(next_ibn);
-                    },
+                    callback: loadNextImage,
                 },
             ],
         });
